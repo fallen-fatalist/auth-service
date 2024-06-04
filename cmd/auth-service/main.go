@@ -2,17 +2,47 @@ package main
 
 import (
 	"auth-service/internal/config"
-	"fmt"
+	"log/slog"
+	"os"
+)
+
+const (
+	envLocal = "local"
+	envDev   = "dev"
+	envProd  = "prod"
 )
 
 func main() {
 	cfg := config.MustLoad()
 
-	fmt.Println(cfg)
+	log := setupLogger(cfg.Env)
 
-	// TODO: Initialize logger
-	
+	log.Info("starting application",
+		slog.Any("config", cfg),
+	)
+
 	// TODO: Initialize application
 
 	// TODO: Launch gRPC-server of application
+}
+
+func setupLogger(env string) *slog.Logger {
+	var log *slog.Logger
+
+	switch env {
+	case envLocal:
+		log = slog.New(
+			slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug}),
+		)
+	case envDev:
+		log = slog.New(
+			slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug}),
+		)
+	case envProd:
+		log = slog.New(
+			slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelInfo}),
+		)
+	}
+
+	return log
 }
