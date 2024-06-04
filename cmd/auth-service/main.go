@@ -1,9 +1,13 @@
 package main
 
 import (
-	"auth-service/internal/config"
 	"log/slog"
 	"os"
+	"os/signal"
+	"syscall"
+
+	"auth-service/internal/app"
+	"auth-service/internal/config"
 )
 
 const (
@@ -21,9 +25,22 @@ func main() {
 		slog.Any("config", cfg),
 	)
 
-	// TODO: Initialize application
+	application := app.New(log, cfg.GRPC.Port, cfg.StoragePath, cfg.TokenTTL)
 
-	// TODO: Launch gRPC-server of application
+	go application.GRPCSrv.MustRun()
+
+	// Graceful Shutdown
+
+	stop := make(chan os.Signal, 1)
+	signal.Notify(stop, syscall.SIGTERM, syscall.SIGINT)
+
+	sign := <-stop
+
+	log.Info("stopping application", slog.String("signal", sign.String()))
+
+	application.GRPCSrv.Stop()
+
+	log.Info("application stopped")
 }
 
 func setupLogger(env string) *slog.Logger {
